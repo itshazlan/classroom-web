@@ -11,6 +11,7 @@ import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 import { Tooltip } from 'primereact/tooltip';
 import 'primeicons/primeicons.css';
+import axios from 'axios';
 
 import AppLogo from '../../components/app-logo/app-logo';
 import StreamPeerBlock from '../../components/stream-peer-block/stream-peer.block';
@@ -21,6 +22,14 @@ import { Subscription } from 'rxjs';
 import { EventEmitter } from '../../shared/peerjs/event-emitter';
 import { useNavigate } from 'react-router-dom';
 import PeerInstance from '../../shared/peerjs/peer-instance';
+import { useSocket } from '../../services/socket/socket-context';
+
+interface Session {
+    id: string;
+    kategoriSoal: string;
+    waktuMulai: string;
+    waktuSelesai: string;
+};
 
 function Home() {
     const [nickname, setNickname] = useState<string>('');
@@ -38,8 +47,13 @@ function Home() {
     const [configuration, setConfiguration] = useState<PeerConfiguration>();
     const [mediaStreamSelected, setMediaStreamSelected] = useState<EventEmitter<MediaStream>>(new EventEmitter());
     const [visible, setVisible] = useState(true);
+    const { joinRoom, startSession, pauseSession, resumeSession, endSession, sendData } = useSocket();
+    const [session, setSession] = useState<Session[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [duration, setDuration] = useState<string>('');
 
     const toast = useRef<any>(null);
+    const baseUrl = 'http://103.250.10.4:8081/safety-induction-backend/api/v1';
 
     useEffect(() => {
         console.log('hasFocusedConnection', hasFocusedConnection);
@@ -48,6 +62,24 @@ function Home() {
         setFocusedConnection(undefined);
         setNickname('');
         setPeerId('');
+
+        const getSession = () => {
+            axios.get<Session[]>(`${baseUrl}/sesi?kategoriSoal=018e8d5e-2b03-70bf-8782-d2cc76825c3b`)
+                .then((response) => {
+                    const body = response.data as any;
+                    setSession(body.data);
+                })
+                .catch((error) => {
+                    setError('An error occurred while fetching data.');
+                    console.error(error);
+                });
+
+            if (error) {
+                return <div>Error: {error}</div>
+            }
+        }
+
+        getSession();
 
         peerConnectionSubscription = PeerJsService.connection.subscribe(
             (connection: PeerInstance | null) => {
@@ -122,6 +154,8 @@ function Home() {
 
     const disconnect = () => {
         PeerJsService.disconnect();
+        const roomId = session[0].id;
+        endSession(roomId);
     }
 
     const addPeer = () => {
@@ -183,6 +217,23 @@ function Home() {
         // this.settingsDialog.showDialog();
     }
 
+    const handleStartSession = () => {
+        // console.log("🚀 ~ handleStartSession ~ session[0]?.id:", session[0]?.id)
+        // console.log("🚀 ~ handleStartSession ~ +duration:", +duration)
+        const roomId = session[0]?.id;
+        joinRoom(roomId, +duration);
+        sendData(roomId, peerId);
+    }
+
+    const handlePauseSession = () => {
+        const roomId = session[0]?.id;
+        pauseSession(roomId);
+    }
+    const handleResumeSession = () => {
+        const roomId = session[0]?.id;
+        resumeSession(roomId);
+    }
+
     return (
         <React.Fragment>
             <div className="connected-container h-full w-full">
@@ -204,9 +255,17 @@ function Home() {
                             <div className="conn-stream-container">
                                 <div className="connections-section">
                                     <h5 className="text-center">CONNECTIONS</h5>
-                                    <div className="add-peer">
-                                        <InputText value={newPeerId} placeholder='Remote ID' className='add-peer-textfield' onChange={(e) => setNewPeerId(e.target.value)} />
+                                    <div className="add-peer mb-2">
+                                        <InputText value={newPeerId} placeholder='Remote ID' className='add-peer-textfield border rounded-sm' onChange={(e) => setNewPeerId(e.target.value)} />
                                         <Button label="+" className='add-peer-button p-button-sm' onClick={addPeer} />
+                                    </div>
+                                    <div className='add-peer mb-2'>
+                                        <InputText value={duration} type='number' placeholder='Duration' className='add-peer-textfield border rounded-sm' onChange={(e) => setDuration(e.target.value)} />
+                                        <Button label='Start' className='add-peer-button p-button-sm' onClick={handleStartSession} />
+                                    </div>
+                                    <div className='add-peer mb-2'>
+                                        <Button label='Pause' className='bg-gray-400' onClick={handlePauseSession} />
+                                        <Button label='Resume' className='bg-green-500' onClick={handleResumeSession} />
                                     </div>
                                     <ul className="peer-collection-container">
                                         {connectionList.map((connection) => {

@@ -1,29 +1,32 @@
-import { StrictMode } from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
-import { BrowserRouter } from 'react-router-dom';
+import { StrictMode } from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+import { BrowserRouter } from "react-router-dom";
 
 // Stylesheets
-import 'primeicons/primeicons.css';
-import 'primereact/resources/themes/saga-blue/theme.css'; // Choose the theme you prefer
-import 'primereact/resources/primereact.min.css';
-import 'primeflex/primeflex.css';
+import "primeicons/primeicons.css";
+import "primereact/resources/themes/saga-blue/theme.css"; // Choose the theme you prefer
+import "primereact/resources/primereact.min.css";
+import "primeflex/primeflex.css";
 // import 'primeflex/primeicons.css';
-import './index.css'; // Ensure this import is after PrimeReact styles
-import { PrimeReactProvider } from 'primereact/api';
-import Tailwind from 'primereact/passthrough/tailwind';
+import "./index.css"; // Ensure this import is after PrimeReact styles
+import { PrimeReactProvider } from "primereact/api";
+import Tailwind from "primereact/passthrough/tailwind";
+import { SocketProvider } from "./services/socket/socket-context";
 
 const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
+  document.getElementById("root") as HTMLElement
 );
 root.render(
   <StrictMode>
-    <PrimeReactProvider value={{unstyled: true, pt: Tailwind}}>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-    </PrimeReactProvider>
+    <SocketProvider>
+      <PrimeReactProvider value={{ unstyled: true, pt: Tailwind }}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </PrimeReactProvider>
+    </SocketProvider>
   </StrictMode>
 );
 
